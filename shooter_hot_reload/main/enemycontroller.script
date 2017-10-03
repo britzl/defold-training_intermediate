@@ -1,0 +1,195 @@
+bez = require("main.bezier")
+
+local down = vmath.vector3(0, -1, 0)
+local offscreen = vmath.vector3(-100, -100, 0)
+
+-- pre-calc derivative terms
+local function pre_calc(w)
+	w.v1 = bez.v1(w.p0, w.p1, w.p2, w.p3)
+	w.v2 = bez.v2(w.p0, w.p1, w.p2)
+	w.v3 = bez.v3(w.p0, w.p1)
+	return w
+end
+
+local function build_waves()
+	local crv0 =  { p0 = vmath.vector3(200, 1000, 0),
+					p1 = vmath.vector3(200, 800, 0),
+					p2 = vmath.vector3(200, 100, 0),
+					p3 = vmath.vector3(200, -100, 0) }
+	crv0 = pre_calc(crv0)
+	local crv1 =  { p0 = vmath.vector3(400, -100, 0),
+					p1 = vmath.vector3(400, 650, 0),      --
+					p2 = vmath.vector3(0, 850, 0),
+					p3 = vmath.vector3(100, -100, 0) }
+	crv1 = pre_calc(crv1)
+	local crv2 =  { p0 = vmath.vector3(0, 1000, 0),
+					p1 = vmath.vector3(0, 600, 0),
+					p2 = vmath.vector3(400, 400, 0),
+					p3 = vmath.vector3(400, -100, 0) }
+	crv2 = pre_calc(crv2)
+
+	local wave0 = { t = 2, curves = { crv2 }, 
+							nums =   { 4 },
+							dists =  { 80 },
+							speed = 200 }
+	
+	local wave1 = { t = 16, curves = { crv0, crv1 },
+							nums =   { 6, 12 },
+							dists =  { 80, 80 },			--
+							speed = 300 }
+
+	return { wave0, wave1 }
+end
+
+function init(self)
+	self.waves = build_waves()	
+	self.t = 0
+	self.current_wave = nil
+	self.current_l = 0
+	self.next_wave_i = 1
+	self.wait_for = self.waves[self.next_wave_i].t
+	self.waiting = false
+end
+
+local function spawn_wave(wave)
+	wave.spawn = {}
+	for i, curve in ipairs(wave.curves) do
+		local offset = 0
+		for n = 0, wave.nums[i] do
+			local id = factory.create("#enemyfactory", offscreen, nil)
+			table.insert(wave.spawn, { id = id, curve = curve, offset = offset, t = 0, l = wave.speed })
+			offset = offset + wave.dists[i]
+		end		
+	end
+	return wave
+end
+
+local function unspawn_waves(waves)
+	for i, w in pairs(waves) do
+		if w.spawn then
+			for i, s in pairs(w.spawn) do
+				if s.id then
+					go.delete(s.id)
+					s.id = nil
+				end
+			end
+		end
+	end
+end
+
+local function step_wave(wave)
+	for i, s in pairs(wave) do
+		s.t = bez.step(s.t, s.l * dt, v1, v2, v3)
+		pos = bez.point(s.t, p0, p1, p2, p3)
+		go.set_position(pos, s.id)
+		tan = vmath.normalize(bez.tangent(s.t, v1, v2, v3))
+		go.set_rotation(vmath.quat_from_to(down, tan), s.id)
+	end
+end
+
+function update(self, dt)
+	self.t = self.t + dt
+
+	if self.waiting and self.t > self.wait_for then
+		-- start wave
+		print("start wave")
+		unspawn_waves(self.waves)
+		self.current_wave = self.waves[self.next_wave_i]
+		self.current_l = 0
+
+		spawn_wave(self.current_wave)
+		
+		self.next_wave_i = self.next_wave_i + 1
+		local nw = self.waves[self.next_wave_i]
+		print(self.next_wave_i)
+		if nw then
+			self.wait_for = nw.t
+		else
+			self.waiting = false		-- no more waves
+		end
+	end
+	
+	if self.current_wave then
+		local x = vmath.vector3()
+		local y
+		local z = vmath.vector3(0, 0, -1)	
+		for i, s in pairs(self.current_wave.spawn) do
+			if self.current_l > s.offset then
+				s.t = bez.step(s.t, s.l * dt, s.curve.v1, s.curve.v2, s.curve.v3)
+			end
+			if s.t >= 0 and s.t <= 1 then
+				pos = bez.point(s.t, s.curve.p0, s.curve.p1, s.curve.p2, s.curve.p3)
+				go.set_position(pos, s.id)
+				y = vmath.normalize(bez.tangent(s.t, s.curve.v1, s.curve.v2, s.curve.v3))
+				x.x = -y.y
+				x.y = y.x
+				go.set_rotation(vmath.quat_basis(-x, -y, z), s.id)
+			end
+		end
+		self.current_l = self.current_l + self.current_wave.speed * dt
+	end
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("start") then
+		self.waiting = true
+		self.t = 0
+	elseif message_id == hash("show_wave_at") then
+		unspawn_waves(self.waves)
+		local wave = self.waves[message.wave_index]
+		spawn_wave(wave)
+		local l = message.length
+		local x = vmath.vector3()
+		local y
+		local z = vmath.vector3(0, 0, -1)
+		for i, s in pairs(wave.spawn) do
+			if l - s.offset > 0 then
+				s.t = bez.long_step(0, (l - s.offset), s.curve.v1, s.curve.v2, s.curve.v3)
+			end
+			if s.t < 1 then
+				pos = bez.point(s.t, s.curve.p0, s.curve.p1, s.curve.p2, s.curve.p3)
+				go.set_position(pos, s.id)
+				y = vmath.normalize(bez.tangent(s.t, s.curve.v1, s.curve.v2, s.curve.v3))
+				x.x = -y.y
+				x.y = y.x
+				go.set_rotation(vmath.quat_basis(-x, -y, z), s.id)
+			end
+		end	
+	end
+end
+
+
+
+
+function on_reload(self)
+	self.waiting = false
+	self.current_wave = nil
+	
+	unspawn_waves(self.waves)
+	self.waves = build_waves()
+	
+	self.debug_len = 800
+	msg.post("#", "show_wave_at", { wave_index = 2, length = self.debug_len })
+	msg.post(".", "acquire_input_focus")
+end
+
+
+
+
+
+
+
+
+
+
+
+
+--[[ function on_input(self, action_id, action)
+	if action_id == hash("plus") then
+		self.debug_len = self.debug_len + 10  
+		msg.post("#", "show_wave_at", { wave_index = 2, length = self.debug_len })
+	elseif action_id == hash("minus") then
+		self.debug_len = self.debug_len - 10 
+		msg.post("#", "show_wave_at", { wave_index = 2, length = self.debug_len })	
+	end
+end --]]

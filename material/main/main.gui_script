@@ -1,0 +1,60 @@
+local dirtylarry = require("dirtylarry/dirtylarry")
+
+------------------------------------------------------------
+-- monkey patch dirtylarry with slider functionality
+local function hit_test(self, node, action_id, action)
+    if not dirtylarry.is_enabled(self, node) then
+        return false
+    end
+
+    local hit = gui.pick_node( node, action.x, action.y )
+    local touch = action_id == dirtylarry.action_id_touch
+    return touch and hit
+end
+dirtylarry.slider = function(self, node, action_id, action, value)
+	local node_bg = gui.get_node(node .. "/larryslider")
+    local node_knob = gui.get_node(node .. "/larryknob")
+    local s = gui.get_size(node_bg)
+
+    local hit = hit_test(self, node_bg, action_id, action)
+    if hit then
+        if not action.released then
+			local p = gui.get_screen_position(node_bg)
+			local mp = vmath.vector3(action.screen_x, action.screen_y, 0)
+			
+			local px = p.x - s.x / 2
+			local mpx = mp.x
+			
+			local rel_pos = math.min(1.0, math.max(0.0, (mpx - px) / s.x))
+			value = rel_pos
+        end
+    end
+    
+    gui.set_position(node_knob, vmath.vector3(s.x * value, 0, 0))
+    return value
+end
+------------------------------------------------------------
+
+function init(self)
+	msg.post(".","acquire_input_focus")
+	self.pp_enabled = true
+	self.pp_divider = 0.5
+	self.pp_material = "grayscale"
+end
+
+function update(self, dt)
+	msg.post("@render:", "render_options", {
+		pp_enabled = self.pp_enabled,
+		pp_divider = self.pp_divider,
+		pp_material = self.pp_material
+	})
+end
+
+function on_input(self, action_id, action)
+	self.pp_enabled = dirtylarry:checkbox("pp_enabled", action_id, action, self.pp_enabled)
+	self.pp_divider = dirtylarry:slider("pp_divider", action_id, action, self.pp_divider)
+	self.pp_material = dirtylarry:radio("effect_grayscale", action_id, action, "grayscale", self.pp_material)
+	self.pp_material = dirtylarry:radio("effect_invert", action_id, action, "invert", self.pp_material)
+	self.pp_material = dirtylarry:radio("effect_animcoords", action_id, action, "animcoords", self.pp_material)
+	self.pp_material = dirtylarry:radio("effect_heat", action_id, action, "heat", self.pp_material)
+end

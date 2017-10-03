@@ -1,0 +1,25 @@
+[project]
+title = Shooter demo
+version = 0.1
+
+[bootstrap]
+main_collection = /main/main.collectionc
+render = /render/shooter.renderc
+
+[input]
+game_binding = /input/game.input_bindingc
+
+[display]
+width = 400
+height = 850
+
+[physics]
+scale = 0.02
+debug = 0
+
+[script]
+shared_state = 1
+
+[sprite]
+subpixels = 1
+

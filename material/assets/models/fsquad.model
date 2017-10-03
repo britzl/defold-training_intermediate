@@ -1,0 +1,8 @@
+mesh: "/assets/meshes/fsquad.dae"
+material: "/assets/materials/fsquad.material"
+textures: "/assets/images/defold_logo_bigger.png"
+textures: "/assets/images/heatmap.png"
+skeleton: ""
+animations: ""
+default_animation: ""
+name: "unnamed"

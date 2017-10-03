@@ -1,0 +1,45 @@
+go.property("speed", 300)
+
+function init(self)
+	self.direction = 0
+end
+
+function update(self, dt)
+	local ball_pos = go.get_position("ball")
+	local ball_direction = go.get("ball#script", "direction")
+	local my_pos = go.get_position()
+	
+	-- only move the ai paddle when the ball is travelling towards the paddle
+	if (ball_pos.x < my_pos.x and ball_direction.x > 0) then
+		local vertical_distance_to_ball = (my_pos.y - ball_pos.y)
+		-- update direction of movement when the vertical distance to the ball
+		-- is above a threshold
+		-- reduce this value to make the AI react faster
+		if math.abs(vertical_distance_to_ball) > 64 then
+			if vertical_distance_to_ball < 0 then
+				self.direction = 1
+			else
+				self.direction = -1
+			end
+		end
+	else
+		self.direction = 0
+	end
+	
+	-- move the paddle based on ai input
+	local pos = go.get_position()
+	pos.y = pos.y + self.direction * self.speed * dt
+	go.set_position(pos)
+end
+
+function on_message(self, message_id, message, sender)
+	-- stop the paddle from going through the walls
+	if message_id == hash("contact_point_response") and message.group == hash("wall") then
+		go.set_position(go.get_position() + message.normal * message.distance)
+	end
+end
+
+function on_reload(self)
+	-- Add reload-handling code here
+	-- Remove this function if not needed
+end

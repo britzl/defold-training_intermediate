@@ -1,0 +1,52 @@
+go.property("direction", vmath.vector3())
+go.property("speed", 500)
+
+function init(self)
+	math.randomseed(os.time())
+	
+	-- store the original position of the ball so we can reset it
+	self.original_position = go.get_position()
+	
+	-- set an initial random direction of travel
+	self.direction = vmath.normalize(vmath.vector3(math.random(3, 7) * (math.random(0, 1) > 0.5 and -1 or 1), math.random(-1, 1), 0))
+end
+
+function update(self, dt)
+	-- move the ball in it's current direction
+	-- with the specified speed (pixels/second)
+	-- apply delta time for correct movement regardless
+	-- of framerate
+	local pos = go.get_position()
+	pos = pos + self.direction * self.speed * dt
+	go.set_position(pos)
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("contact_point_response") then
+		-- bounce on something above/below ball?
+		if message.normal.y ~= 0 then
+			self.direction.y = -self.direction.y
+		end
+		
+		-- bounce on something to the left/right of ball?
+		if message.normal.x ~= 0 then
+			self.direction.x = -self.direction.x
+		end
+		
+		-- resolve collision by moving ball "out of" whatever it collided with
+		go.set_position(go.get_position() + message.normal * message.distance)
+		
+		-- collided with player 1 goal - reset position and increase score
+		if message.group == hash("goalp1") then
+			go.set_position(self.original_position)
+		-- collided with player 2 goal - reset position and increase score
+		elseif message.group == hash("goalp2") then
+			go.set_position(self.original_position)
+		-- collided with a padde - add random adjustment to vertical direction
+		elseif message.group == hash("paddle") then
+			local dist = go.get_position(message.other_id) - go.get_position()
+			self.direction.y = self.direction.y - dist.y / 150
+			self.direction = vmath.normalize(self.direction)
+		end
+	end
+end

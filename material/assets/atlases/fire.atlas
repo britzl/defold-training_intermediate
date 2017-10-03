@@ -1,0 +1,187 @@
+animations {
+  id: "fire"
+  images {
+    image: "/assets/images/fire/scene00001.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00005.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00009.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00013.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00017.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00021.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00025.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00029.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00033.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00037.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00041.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00045.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00049.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00053.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00057.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00061.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00065.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00069.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00073.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00077.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00081.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00085.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00089.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00093.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00097.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00101.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00105.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00109.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00113.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00117.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00121.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00125.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00129.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00133.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00137.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00141.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00145.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00149.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00153.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00157.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00161.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00165.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00169.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00173.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00177.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00181.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00185.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00189.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00193.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00197.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00201.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00205.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00209.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00213.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00217.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00221.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00225.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00229.jpg"
+  }
+  images {
+    image: "/assets/images/fire/scene00233.jpg"
+  }
+  playback: PLAYBACK_LOOP_FORWARD
+  fps: 16
+  flip_horizontal: 0
+  flip_vertical: 0
+}
+margin: 0
+extrude_borders: 0
+inner_padding: 0

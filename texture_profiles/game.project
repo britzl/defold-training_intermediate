@@ -1,0 +1,40 @@
+[project]
+title = TextureProfilesExample
+write_log = 0
+dependencies = 
+
+[bootstrap]
+main_collection = /main/main.collectionc
+
+[input]
+game_binding = /input/game.input_bindingc
+
+[display]
+width = 1280
+height = 720
+high_dpi = 1
+
+[physics]
+scale = 0.02
+
+[script]
+shared_state = 1
+
+[ios]
+bundle_identifier = se.svenandersson.Clean
+
+[android]
+package = se.svenandersson.Clean
+iap_provider = GooglePlay
+input_method = HiddenInputField
+manifest = 
+
+[osx]
+bundle_identifier = se.svenandersson.Clean
+
+[tracking]
+app_id = 
+
+[graphics]
+texture_profiles = /custom.texture_profiles
+

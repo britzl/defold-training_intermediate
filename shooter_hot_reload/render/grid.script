@@ -1,0 +1,9 @@
+function init(self)
+	self.t = 0
+	go.animate(".", "euler.z", go.PLAYBACK_LOOP_FORWARD, 360, go.EASING_LINEAR, 10)
+end
+
+function update(self, dt)
+	self.t = self.t + dt
+	sprite.set_constant("#model", "time", vmath.vector4(self.t, 0, 0, 0))
+end

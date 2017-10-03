@@ -1,0 +1,17 @@
+script: "/render/custom.render_script"
+materials {
+  name: "grayscale"
+  material: "/assets/materials/effect_grayscale.material"
+}
+materials {
+  name: "invert"
+  material: "/assets/materials/effect_invert.material"
+}
+materials {
+  name: "animcoords"
+  material: "/assets/materials/effect_animcoords.material"
+}
+materials {
+  name: "heat"
+  material: "/assets/materials/effect_heat.material"
+}

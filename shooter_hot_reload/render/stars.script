@@ -1,0 +1,12 @@
+function init(self)
+	self.t = 0
+end
+
+function update(self, dt)
+	self.t = self.t + dt
+	sprite.set_constant("#model", "time", vmath.vector4(self.t, 0, 0, 0))
+end
+
+function on_reload(self)
+--	self.t = 11.04
+end

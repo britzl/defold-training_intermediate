@@ -1,0 +1,576 @@
+go.property("timer", 0)
+
+local blocksize = 96		-- Distance between block centers
+local edge = 80				-- Left and right edge.
+local bottom_edge = 62		-- Bottom edge.
+local boardwidth = 9		-- Number of columns
+local boardheight = 9		-- Number of rows
+
+--
+-- The list of fishes that are used. These names must match animations/images
+-- in the atlas used for fishes.
+--
+--
+local colors = { hash("yellow"), hash("blue"), hash("orange"),
+				hash("purple"), hash("green"), hash("red") }
+
+local type_plain = hash("plain")
+local type_striped_h = hash("striped-h")
+local type_striped_v = hash("striped-v")
+local type_wrapped = hash("wrapped")
+local type_bomb = hash("bomb")
+
+local function is_striped(fish)
+	return fish.type == type_striped_v or fish.type == type_striped_h
+end
+
+local function is_wrapped(fish)
+	return fish.type == type_wrapped
+end
+
+--
+-- INIT the board
+--
+function init(self)
+	self.board = {}				-- Contains the board structure in 2D
+
+	--
+	-- Start the game
+	--
+	msg.post("#", "start_level")
+	msg.post(".", "acquire_input_focus")
+end
+
+--
+-- Construct a new random board. It's a 2D table with origo in the
+-- bottom left corner:
+--
+--  ...
+-- (0,2) (1,2) (2,2)
+-- (0,1) (1,1) (2,1)
+-- (0,0) (1,0) (2,0) ...
+--
+-- Each slot stores the id of the game object that sits there, the x and y
+-- position and the type, for easy searching. Storing the x and y position is
+-- redundant but useful if we use the slots out of context, which we do at times. 
+-- 
+local function build_board()
+	local board = {}
+	math.randomseed(os.time())
+	local pos = vmath.vector3()
+	local x = 0
+	local y = 0
+	for x = 0,boardwidth-1 do
+		pos.x = edge + blocksize / 2 + blocksize * x
+		board[x] = {}
+		for y = 0,boardheight-1 do
+			pos.y = bottom_edge + blocksize / 2 + blocksize * y
+			local color = colors[math.random(#colors)]	-- Pick a random color
+			local type = type_plain
+			local id = factory.create("#fish_factory", pos, null, { color = color })
+			board[x][y] = { id = id, x = x, y = y, color = color, type = type }
+		end
+	end	
+	return board
+end
+
+
+--
+-- Apply shift-down logic to all slots on the board, then
+-- call the callback.
+--
+local function collapse_board(board, callback)
+	local duration = 0.3
+	--
+	-- Slide all remaining blocks down into blank (nil) spots.
+	-- Going column by column makes this easy.
+	--
+	-- Avoid some garbage creation by reusing these locals 
+	-- through the loops
+	--
+	local dy = 0
+	local pos = vmath.vector3()
+	for x = 0,boardwidth - 1 do
+		--
+		-- Reset the drop down distance for each column
+		--
+		dy = 0
+		for y = 0,boardheight - 1 do
+			if board[x][y] ~= nil then
+				if dy > 0 then
+					--
+					-- Move down dy steps
+					--
+					board[x][y - dy] = board[x][y]
+					board[x][y] = nil
+					--
+					-- Calc new position and animate
+					---
+					board[x][y - dy].y = board[x][y - dy].y - dy
+					go.animate(board[x][y-dy].id, "position.y", go.PLAYBACK_ONCE_FORWARD, bottom_edge + blocksize / 2 + blocksize * (y - dy), go.EASING_OUTBOUNCE, duration)
+				end
+			else
+				--
+				-- Empty slot - increase the distance to move
+				--
+				dy = dy + 1
+			end
+		end
+	end
+	
+	go.animate("#", "timer", go.PLAYBACK_ONCE_FORWARD, 1, go.EASING_LINEAR, duration, 0, callback)	
+end
+
+
+--
+-- Returns a list of neighbor slots of the same color as
+-- the one on x, y. Horizontally.
+--
+local function horisontal_neighbors(board, x, y)
+	local neighbors = {}
+	if not board[x][y] or not board[x][y].color then
+		return neighbors
+	end
+
+	local color = board[x][y].color 
+	-- 
+	-- Search from slot left to the edge
+	--
+	for i = x - 1, 0, -1 do
+		local fish = board[i][y]
+		if fish and fish.color == color then
+			table.insert(neighbors, fish)
+		else
+			--
+			-- Break the search as soon as we hit something of a different color
+			-- 
+			break
+		end
+	end
+
+	-- 
+	-- Search from slot right to the edge
+	--	
+	for i = x + 1, boardwidth - 1 do
+		local fish = board[i][y] 
+		if fish and fish.color == color then
+			table.insert(neighbors, fish)
+		else
+			--
+			-- Break the search as soon as we hit something of a different color
+			-- 
+			break
+		end
+	end
+	return neighbors
+end
+
+
+--
+-- Returns a list of neighbor slots of the same color as
+-- the one on x, y. Vertically.
+--
+local function vertical_neighbors(board, x, y)
+	local neighbors = {}
+	if not board[x][y] or not board[x][y].color then
+		return neighbors
+	end
+	
+	local color = board[x][y].color
+	
+	-- 
+	-- Search from slot down to the edge
+	--		
+	for i = y - 1, 0, -1 do
+		local slot = board[x][i]
+		if slot and slot.color == color then
+			table.insert(neighbors, slot)
+		else
+			--
+			-- Break the search as soon as we hit something of a different type
+			-- 
+			break
+		end
+	end
+	
+	-- 
+	-- Search from slot up to the edge
+	--		
+	for i = y + 1, boardheight - 1 do
+		local slot = board[x][i]
+		if slot and slot.color == color then
+			table.insert(neighbors, slot)
+		else
+			--
+			-- Break the search as soon as we hit something of a different color
+			-- 
+			break
+		end
+	end
+	return neighbors
+end
+
+
+--
+-- Returns a list of neighbor slots of the same color as
+-- the one on x, y.
+--
+local function find_same(board, x, y)
+	local result = { left = x, right = x, top = y, bottom = y, fish = {} }
+	
+	local duplicate = {}
+	
+	local function add(slot)
+		result.left = math.min(result.left, slot.x)
+		result.right = math.max(result.right, slot.x)
+		result.bottom = math.min(result.bottom, slot.y)
+		result.top = math.max(result.top, slot.y)
+		table.insert(result.fish, slot)
+		duplicate[slot] = true
+	end
+	
+	local function search(board, x, y)
+		local v = vertical_neighbors(board, x, y)
+		for _,slot in pairs(v) do
+			if not duplicate[slot] then
+				add(slot)
+				search(board, slot.x, slot.y)
+			end	
+		end
+		local h = horisontal_neighbors(board, x, y)
+		for _,slot in pairs(h) do
+			if not duplicate[slot] then
+				add(slot)
+				search(board, slot.x, slot.y)
+			end	
+		end
+	end
+
+	add(board[x][y])
+	search(board, x, y)	
+	
+	result.width = 1 + result.right - result.left
+	result.height = 1 + result.top - result.bottom
+
+	return result
+end
+
+
+--
+-- Return an iterator function for all non-empty slots
+--
+local function iterate_fishes(board)
+	local x = 0
+	local y = -1
+	return function()
+		repeat
+			y = y + 1
+			if x == boardwidth - 1 and y == boardheight then
+				return nil
+			end
+			
+			if y == boardheight then
+				y = 0
+				x = x + 1
+			end
+		until board[x][y]
+		return board[x][y]
+	end
+end
+
+
+--
+-- Remove a single fish from the board
+--
+local function remove_fish(board, fish)
+	if not board[fish.x][fish.y] then
+		-- the fish has already been removed
+		-- this can happen when we remove a match and a line blast or
+		-- other special fish effect takes place at the same time
+		return
+	end
+	
+	msg.post(fish.id, "remove")
+	--
+	-- Empty slots are set to nil so we can find them
+	--
+	board[fish.x][fish.y] = nil
+
+	--
+	-- Horisontal lineblast
+	--
+	if fish.type == type_striped_h then
+		for x=0, boardwidth -1 do
+			if board[x][fish.y] then
+				remove_fish(board, board[x][fish.y])
+			end
+		end
+	--
+	-- Vertical lineblast
+	--
+	elseif fish.type == type_striped_v then
+		for y=0, boardheight -1 do
+			if board[fish.x][y] then
+				remove_fish(board, board[fish.x][y])
+			end
+		end
+	--
+	-- Wrapped explosion - remove all adjacent fishes
+	--
+	elseif fish.type == type_wrapped then
+		for x = fish.x - 1, fish.x + 1 do
+			for y = fish.y - 1, fish.y + 1 do
+				if board[x] and board[x][y] then
+					remove_fish(board, board[x][y])
+				end
+			end
+		end
+	--
+	-- Bomb
+	--
+	elseif fish.type == type_bomb then
+		print("removing bomb - add code to remove fishes of the color that is most common")
+	end
+end
+
+
+--
+-- Remove a list of fishes from the board
+--
+local function remove_fishes(board, fishes)
+	for _,fish in pairs(fishes) do
+		remove_fish(board, fish)
+	end
+end
+
+
+--
+-- Change type and color of an existing fish
+-- Use this when converting fishes into other types due
+-- to a match of some kind
+-- Will clear list of neighbors
+--
+local function respawn(fish, type, color)
+	fish.color = color
+	fish.type = type
+	fish.neighbors_vertical = {}
+	fish.neighbors_horisontal = {}
+	msg.post(fish.id, "respawn", { color = fish.color, type = fish.type, position = go.get_position(fish.id) })
+end
+
+
+--
+-- Remove all fish that are of the same color
+--
+local function remove_same(board, x, y, callback)
+	local duration = 0.3
+	
+	local result = find_same(board, x, y)
+	--
+	-- single fish, was it a special one?
+	--
+	if #result.fish == 1 then
+		local slot = table.remove(result.fish, 1)
+		if slot.type == type_bomb then
+			for x = slot.x - 2, slot.x + 2 do
+				for y = slot.y - 2, slot.y + 2 do
+					if board[x] and board[x][y] then
+						remove_fish(board, board[x][y])
+					end
+				end
+			end
+		end
+		msg.post("#", "post-reaction")
+	elseif #result.fish >= 2 then
+		--
+		-- More than or equal to 6 fish?
+		-- Create special fish
+		--
+		if #result.fish >= 6 then
+			local slot = table.remove(result.fish, 1)
+			if result.width == result.height then
+				remove_fishes(board, result.fish)
+				respawn(slot, type_bomb, slot.color)
+			elseif result.width > result.height then
+				remove_fishes(board, result.fish)
+				respawn(slot, type_striped_v, slot.color)
+			else
+				remove_fishes(board, result.fish)
+				respawn(slot, type_striped_h, slot.color)
+			end
+		else
+			remove_fishes(board, result.fish)
+		end
+	end
+	
+	go.animate("#", "timer", go.PLAYBACK_ONCE_FORWARD, 1, go.EASING_LINEAR, duration, 0, callback)
+end
+
+
+-- 
+-- Find and return any empty slots.
+--
+local function empty_slots(board)
+	local slots = {}
+	for x = 0, boardwidth - 1 do
+		for y = 0, boardheight - 1 do
+			if board[x][y] == nil then
+				--
+				-- The slot is nil/empty so we store this position in the
+				-- list of slots that we will return
+				--
+				table.insert(slots, { x = x, y = y })
+			end
+		end
+	end
+	return slots
+end
+
+--
+-- Drop spawned fish to the board. Target the supplied slots. 
+-- When done, call callback.
+--
+local function fill_slots(board, empty_slots, callback)
+	local duration = 0.3
+	--
+	-- Go through the list of empty slots and drop a (reused) fish
+	-- game object into its position.
+	--
+	local pos = vmath.vector3()	-- Reuse through loop
+	for i, s in pairs(empty_slots) do
+		--
+		-- Calc the x position of this slot
+		--
+		pos.x = edge + blocksize / 2 + blocksize * s.x
+		--
+		-- Start above the screen so we can animate into place
+		-- 
+		pos.y = 1000
+		--
+		-- Pick a random fish
+		--
+		local color = colors[math.random(#colors)]
+		local type = type_plain
+		--
+		-- Create a new fish game object
+		--
+		local id = factory.create("#fish_factory", pos, null, { color = color })
+		--
+		-- Animate into the slot's calculated y position
+		--
+		go.animate(id, "position.y", go.PLAYBACK_ONCE_FORWARD, bottom_edge + blocksize / 2 + blocksize * s.y, go.EASING_OUTBOUNCE, duration)
+		--
+		-- Store the new data in the slot (it was nil)
+		--
+		board[s.x][s.y] = { id = id, type = type, color = color, x = s.x, y = s.y }
+	end
+
+	go.animate("#", "timer", go.PLAYBACK_ONCE_FORWARD, 1, go.EASING_LINEAR, duration, 0, callback)
+end
+
+
+local function get_fishes(board, color)
+	local fishes = {}
+	for fish in iterate_fishes(board) do
+		if not color or fish.color == color then
+			table.insert(fishes, fish)
+		end
+	end
+	return fishes
+end 
+
+
+--
+-- MESSAGE HANDLING
+--
+function on_message(self, message_id, message, sender)
+	if message_id == hash("start_level") then
+		--
+		-- Create a new random board
+		--
+		self.board = build_board()
+	elseif message_id == hash("click") then
+		--
+		-- Click on a slot on the board. We get the slot from the
+		-- input handler that passes us the clicked slot
+		--
+		remove_same(self.board, message.x, message.y, function()
+			msg.post("#", "post-reaction")
+		end)
+	elseif message_id == hash("post-reaction") then
+		--
+		-- Collapse any remaining slots
+		--
+		collapse_board(self.board, function ()
+			--
+			-- Find empty slots
+			--
+			local s = empty_slots(self.board)
+			
+			--
+			-- If there are empty slots, fill them.
+			--
+			if #s > 0 then
+				fill_slots(self.board, s, function ()
+					--
+					-- After filling
+					--
+				end)
+			end
+		end)
+	end
+end
+
+--
+-- INPUT HANDLING
+--
+function on_input(self, action_id, action)
+	if action_id == hash("touch") and action.pressed then
+		--
+		-- What block was touched?
+		--
+		local x = math.floor((action.x - edge) / blocksize)
+		local y = math.floor((action.y - edge) / blocksize)
+		
+		if x < 0 or x >= boardwidth or y < 0 or y >= boardheight or self.board[x][y] == nil then
+			--
+			-- Input is outside board
+			--
+			return
+		end
+		
+		self.click = self.board[x][y]
+		msg.post(self.board[x][y].id, "zoom_and_wobble")
+	elseif action_id == hash("touch") and action.released and self.click then
+		--
+		-- Reset animations on clicked fish
+		--		
+		msg.post(self.click.id, "reset")
+		
+		--
+		-- What block was touched?
+		--
+		local x = math.floor((action.x - edge) / blocksize)
+		local y = math.floor((action.y - edge) / blocksize)
+
+		if x < 0 or x >= boardwidth or y < 0 or y >= boardheight or self.board[x][y] == nil then
+			--
+			-- Input is outside board
+			--
+			return
+		end
+
+		--
+		-- Did we release on the same block?
+		--
+		if self.board[x][y] ~= self.click then
+			return
+		end
+		
+		msg.post("#", "click", { x = self.click.x, y = self.click.y })
+		self.click = nil
+	end
+end
+
+function on_reload(self)
+end
