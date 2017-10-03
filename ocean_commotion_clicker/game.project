@@ -1,6 +1,7 @@
 [project]
 title = Ocean Commotion Clicker
 version = 0.1
+dependencies = https://github.com/defold/defold-examples/releases/download/0.2.0/ocean-commotion.zip
 
 [bootstrap]
 main_collection = /main/main.collectionc
