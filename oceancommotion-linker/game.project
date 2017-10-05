@@ -1,5 +1,5 @@
 [project]
-title = Ocean Commotion Clicker
+title = Ocean Commotion Linker
 version = 0.1
 dependencies = https://github.com/defold/defold-examples/releases/download/0.2.0/ocean-commotion.zip
 
@@ -28,5 +28,4 @@ max_particle_count = 4096
 max_count = 256
 
 [library]
-include_dirs = def-ocean-commotion
-
+include_dirs =

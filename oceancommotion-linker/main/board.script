@@ -33,6 +33,7 @@ end
 --
 function init(self)
 	self.board = {}				-- Contains the board structure in 2D
+	self.link = {}
 
 	--
 	-- Start the game
@@ -119,140 +120,6 @@ local function collapse_board(board, callback)
 	end
 	
 	go.animate("#", "timer", go.PLAYBACK_ONCE_FORWARD, 1, go.EASING_LINEAR, duration, 0, callback)	
-end
-
-
---
--- Returns a list of neighbor slots of the same color as
--- the one on x, y. Horizontally.
---
-local function horisontal_neighbors(board, x, y)
-	local neighbors = {}
-	if not board[x][y] or not board[x][y].color then
-		return neighbors
-	end
-
-	local color = board[x][y].color 
-	-- 
-	-- Search from slot left to the edge
-	--
-	for i = x - 1, 0, -1 do
-		local fish = board[i][y]
-		if fish and fish.color == color then
-			table.insert(neighbors, fish)
-		else
-			--
-			-- Break the search as soon as we hit something of a different color
-			-- 
-			break
-		end
-	end
-
-	-- 
-	-- Search from slot right to the edge
-	--	
-	for i = x + 1, boardwidth - 1 do
-		local fish = board[i][y] 
-		if fish and fish.color == color then
-			table.insert(neighbors, fish)
-		else
-			--
-			-- Break the search as soon as we hit something of a different color
-			-- 
-			break
-		end
-	end
-	return neighbors
-end
-
-
---
--- Returns a list of neighbor slots of the same color as
--- the one on x, y. Vertically.
---
-local function vertical_neighbors(board, x, y)
-	local neighbors = {}
-	if not board[x][y] or not board[x][y].color then
-		return neighbors
-	end
-	
-	local color = board[x][y].color
-	
-	-- 
-	-- Search from slot down to the edge
-	--		
-	for i = y - 1, 0, -1 do
-		local slot = board[x][i]
-		if slot and slot.color == color then
-			table.insert(neighbors, slot)
-		else
-			--
-			-- Break the search as soon as we hit something of a different type
-			-- 
-			break
-		end
-	end
-	
-	-- 
-	-- Search from slot up to the edge
-	--		
-	for i = y + 1, boardheight - 1 do
-		local slot = board[x][i]
-		if slot and slot.color == color then
-			table.insert(neighbors, slot)
-		else
-			--
-			-- Break the search as soon as we hit something of a different color
-			-- 
-			break
-		end
-	end
-	return neighbors
-end
-
-
---
--- Returns a list of neighbor slots of the same color as
--- the one on x, y.
---
-local function find_same(board, x, y)
-	local result = { left = x, right = x, top = y, bottom = y, fish = {} }
-	
-	local duplicate = {}
-	
-	local function add(slot)
-		result.left = math.min(result.left, slot.x)
-		result.right = math.max(result.right, slot.x)
-		result.bottom = math.min(result.bottom, slot.y)
-		result.top = math.max(result.top, slot.y)
-		table.insert(result.fish, slot)
-		duplicate[slot] = true
-	end
-	
-	local function search(board, x, y)
-		local v = vertical_neighbors(board, x, y)
-		for _,slot in pairs(v) do
-			if not duplicate[slot] then
-				add(slot)
-				search(board, slot.x, slot.y)
-			end	
-		end
-		local h = horisontal_neighbors(board, x, y)
-		for _,slot in pairs(h) do
-			if not duplicate[slot] then
-				add(slot)
-				search(board, slot.x, slot.y)
-			end	
-		end
-	end
-
-	add(board[x][y])
-	search(board, x, y)	
-	
-	result.width = 1 + result.right - result.left
-	result.height = 1 + result.top - result.bottom
-
-	return result
 end
 
 
@@ -360,50 +227,75 @@ end
 
 
 --
--- Remove all fish that are of the same color
+-- Remove all fish in a link
 --
-local function remove_same(board, x, y, callback)
+local function remove_link(board, link, callback)
+	-- reset the animation on all fish in the link
+	for _,slot in pairs(link) do
+		msg.post(slot.id, "reset")
+	end
+	-- ignore short links
+	if #link < 3 then
+		callback()
+		return
+	end
+	-- create special fish of the link is long enough
+	if #link > 6 then
+		local fish = table.remove(link)
+		respawn(fish, type_wrapped, fish.color)
+	end
+	-- remove fish and wait before invoking callback
+	remove_fishes(board, link)
 	local duration = 0.3
-	
-	local result = find_same(board, x, y)
-	--
-	-- single fish, was it a special one?
-	--
-	if #result.fish == 1 then
-		local slot = table.remove(result.fish, 1)
-		if slot.type == type_bomb then
-			for x = slot.x - 2, slot.x + 2 do
-				for y = slot.y - 2, slot.y + 2 do
-					if board[x] and board[x][y] then
-						remove_fish(board, board[x][y])
-					end
-				end
-			end
-		end
-		msg.post("#", "post-reaction")
-	elseif #result.fish >= 2 then
-		--
-		-- More than or equal to 6 fish?
-		-- Create special fish
-		--
-		if #result.fish >= 6 then
-			local slot = table.remove(result.fish, 1)
-			if result.width == result.height then
-				remove_fishes(board, result.fish)
-				respawn(slot, type_bomb, slot.color)
-			elseif result.width > result.height then
-				remove_fishes(board, result.fish)
-				respawn(slot, type_striped_v, slot.color)
-			else
-				remove_fishes(board, result.fish)
-				respawn(slot, type_striped_h, slot.color)
-			end
-		else
-			remove_fishes(board, result.fish)
-		end
+	go.animate("#", "timer", go.PLAYBACK_ONCE_FORWARD, 1, go.EASING_LINEAR, duration, 0, callback)
+end
+
+
+--
+-- Add a slot to the link
+--
+local function add_to_link(self, x, y)
+	-- outside board or empty
+	if x < 0 or x >= boardwidth or y < 0 or y >= boardheight or self.board[x][y] == nil then
+		return
 	end
 	
-	go.animate("#", "timer", go.PLAYBACK_ONCE_FORWARD, 1, go.EASING_LINEAR, duration, 0, callback)
+	local slot = self.board[x][y]
+	
+	-- add the first slot to the link without any checks
+	if #self.link == 0 then
+		msg.post(slot.id, "zoom_and_wobble")
+		table.insert(self.link, slot)
+		return
+	end
+
+	local last = self.link[#self.link]
+	local previous = self.link[#self.link - 1]
+	local distance = math.max(math.abs(last.x - x), math.abs(last.y - y))
+	-- don't add the same slot more than once and don't add slots that are too far away
+	if distance ~= 1 then
+		return
+	end
+	-- don't add slots of a different color
+	if last.color ~= slot.color then
+		return
+	end
+	-- going back to the previous link
+	-- remove the last slot of the link
+	if previous == slot then
+		self.link[#self.link] = nil
+		msg.post(last.id, "reset")
+		return
+	end
+	-- don't try to add the same slot twice
+	for i=1,#self.link do
+		if self.link[i] == slot then
+			return
+		end
+	end	
+	-- the new slot is ok, add it
+	msg.post(slot.id, "zoom_and_wobble")
+	table.insert(self.link, slot)
 end
 
 
@@ -468,18 +360,6 @@ local function fill_slots(board, empty_slots, callback)
 	go.animate("#", "timer", go.PLAYBACK_ONCE_FORWARD, 1, go.EASING_LINEAR, duration, 0, callback)
 end
 
-
-local function get_fishes(board, color)
-	local fishes = {}
-	for fish in iterate_fishes(board) do
-		if not color or fish.color == color then
-			table.insert(fishes, fish)
-		end
-	end
-	return fishes
-end 
-
-
 --
 -- MESSAGE HANDLING
 --
@@ -489,14 +369,6 @@ function on_message(self, message_id, message, sender)
 		-- Create a new random board
 		--
 		self.board = build_board()
-	elseif message_id == hash("click") then
-		--
-		-- Click on a slot on the board. We get the slot from the
-		-- input handler that passes us the clicked slot
-		--
-		remove_same(self.board, message.x, message.y, function()
-			msg.post("#", "post-reaction")
-		end)
 	elseif message_id == hash("post-reaction") then
 		--
 		-- Collapse any remaining slots
@@ -521,56 +393,33 @@ function on_message(self, message_id, message, sender)
 	end
 end
 
+
 --
 -- INPUT HANDLING
 --
 function on_input(self, action_id, action)
-	if action_id == hash("touch") and action.pressed then
+	if action_id == hash("touch") or self.linking then
 		--
 		-- What block was touched?
 		--
 		local x = math.floor((action.x - edge) / blocksize)
 		local y = math.floor((action.y - edge) / blocksize)
 		
-		if x < 0 or x >= boardwidth or y < 0 or y >= boardheight or self.board[x][y] == nil then
-			--
-			-- Input is outside board
-			--
-			return
-		end
+		--
+		-- Try to add it to the link
+		--
+		add_to_link(self, x, y)
 		
-		self.click = self.board[x][y]
-		msg.post(self.board[x][y].id, "zoom_and_wobble")
-	elseif action_id == hash("touch") and action.released and self.click then
-		--
-		-- Reset animations on clicked fish
-		--		
-		msg.post(self.click.id, "reset")
-		
-		--
-		-- What block was touched?
-		--
-		local x = math.floor((action.x - edge) / blocksize)
-		local y = math.floor((action.y - edge) / blocksize)
-
-		if x < 0 or x >= boardwidth or y < 0 or y >= boardheight or self.board[x][y] == nil then
-			--
-			-- Input is outside board
-			--
-			return
+		-- Start linking
+		if action.pressed then
+			self.linking = true
+		-- Stop linking remove link
+		elseif action.released then
+			remove_link(self.board, self.link, function()
+				self.linking = false
+				self.link = {}
+				msg.post("#", "post-reaction")
+			end)
 		end
-
-		--
-		-- Did we release on the same block?
-		--
-		if self.board[x][y] ~= self.click then
-			return
-		end
-		
-		msg.post("#", "click", { x = self.click.x, y = self.click.y })
-		self.click = nil
 	end
-end
-
-function on_reload(self)
 end
