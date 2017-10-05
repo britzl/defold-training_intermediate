@@ -1,0 +1,26 @@
+local balls_left = 10
+
+local function update_balls()
+	label.set_text("balls#label", tostring(balls_left))
+end
+
+
+function init(self)
+	msg.post(".", "acquire_input_focus")
+	update_balls()
+end
+
+function on_input(self, action_id, action)
+	if action_id == hash("click") and action.released then
+		if balls_left > 0 then
+			balls_left = balls_left - 1
+			update_balls()
+			factory.create("game#ballfactory", vmath.vector3(action.x, action.y, 1))
+		end
+	end
+end
+
+function on_reload(self)
+	-- Add reload-handling code here
+	-- Remove this function if not needed
+end

@@ -1,0 +1,4 @@
+function final(self)
+	particlefx.play("#explosion")
+	
+end

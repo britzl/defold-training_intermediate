@@ -1,0 +1,27 @@
+images {
+  image: "/builtins/graphics/particle_blob.png"
+}
+images {
+  image: "/assets/images/ball.png"
+}
+images {
+  image: "/assets/images/bg.png"
+}
+images {
+  image: "/assets/images/blocker.png"
+}
+images {
+  image: "/assets/images/bucket.png"
+}
+images {
+  image: "/assets/images/icon_120.png"
+}
+images {
+  image: "/assets/images/pin.png"
+}
+images {
+  image: "/main/images/logo.png"
+}
+margin: 0
+extrude_borders: 2
+inner_padding: 0
