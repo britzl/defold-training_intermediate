@@ -1,5 +1,5 @@
 function init(self)
-	self.t = 0
+	self.t = 0.0
 end
 
 function update(self, dt)
@@ -8,5 +8,5 @@ function update(self, dt)
 end
 
 function on_reload(self)
---	self.t = 11.04
+-- self.t = 11.04
 end

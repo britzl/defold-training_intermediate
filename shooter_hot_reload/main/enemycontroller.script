@@ -175,15 +175,6 @@ end
 
 
 
-
-
-
-
-
-
-
-
-
 --[[ function on_input(self, action_id, action)
 	if action_id == hash("plus") then
 		self.debug_len = self.debug_len + 10  

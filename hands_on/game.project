@@ -49,4 +49,6 @@ app_icon_192x192 = /assets/appicons/icon_192.png
 
 [physics]
 scale = 0.2
+use_fixed_timestep = 1
+gravity_y = -200.0
 

@@ -1,0 +1,9 @@
+animations {
+  animation: "/assets/meshes/chest_anim_open.dae"
+}
+animations {
+  animation: "/assets/meshes/chest_model.dae"
+}
+animations {
+  animation: "/assets/meshes/chest_anim_open_03.dae"
+}
