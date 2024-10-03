@@ -347,11 +347,3 @@ embedded_instances {
     y: 57.0
   }
 }
-embedded_instances {
-  id: "gui"
-  data: "components {\n"
-  "  id: \"efw\"\n"
-  "  component: \"/main/efw.gui\"\n"
-  "}\n"
-  ""
-}
