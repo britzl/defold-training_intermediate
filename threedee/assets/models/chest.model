@@ -1,7 +1,13 @@
 mesh: "/assets/meshes/chest_model.dae"
-material: "/assets/materials/model.material"
-textures: "/assets/images/chest_texture.png"
-skeleton: "/assets/meshes/chest_model.dae"
-animations: "/assets/meshes/chest_anim_open.dae"
-default_animation: "chest_anim_open"
+skeleton: "/assets/meshes/chest_anim_open_03.dae"
+animations: "/assets/meshes/test.animationset"
+default_animation: "chest_anim_open_03"
 name: "unnamed"
+materials {
+  name: "default"
+  material: "/assets/materials/model_world.material"
+  textures {
+    sampler: "tex0"
+    texture: "/assets/images/chest_texture.png"
+  }
+}

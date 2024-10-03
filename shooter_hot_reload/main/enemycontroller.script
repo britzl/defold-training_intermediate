@@ -133,7 +133,7 @@ end
 function on_message(self, message_id, message, sender)
 	if message_id == hash("start") then
 		self.waiting = true
-		self.t = 0
+		self.t = 8.2
 	elseif message_id == hash("show_wave_at") then
 		unspawn_waves(self.waves)
 		local wave = self.waves[message.wave_index]
@@ -172,15 +172,6 @@ function on_reload(self)
 	msg.post("#", "show_wave_at", { wave_index = 2, length = self.debug_len })
 	msg.post(".", "acquire_input_focus")
 end
-
-
-
-
-
-
-
-
-
 
 
 

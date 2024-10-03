@@ -78,7 +78,7 @@ function draw_post_process(self, from_rt)
 	local constants = render.constant_buffer()
 	constants.prop = vmath.vector4(self.pp_divider, 0.0, 0.0, 0.0)
 	constants.anim = vmath.vector4(self.dt, self.anim, 0.0, 0.0)
-	render.draw(self.fsquad_pred, constants)
+	render.draw(self.fsquad_pred, {constants = constants})
 	render.disable_texture(0, from_rt)
 	render.disable_material()
 end

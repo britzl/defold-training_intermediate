@@ -56,5 +56,5 @@ void main()
 	}
 	//color adjust
 	v = mix(vec3(length(v)), v, saturation);
-	gl_FragColor = vec4(v * 0.01, 0.0);
+	gl_FragColor = vec4(v * 0.01, 1.0);
 }

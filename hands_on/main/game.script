@@ -11,7 +11,7 @@ function init(self)
 end
 
 function on_input(self, action_id, action)
-	if action_id == hash("click") and action.released then
+	if action_id == hash("touch") and action.released then
 		if balls_left > 0 then
 			balls_left = balls_left - 1
 			update_balls()

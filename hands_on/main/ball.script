@@ -4,7 +4,7 @@ local score = 0
 function on_message(self, message_id, message, sender)
 	if message_id == hash("collision_response") and message.group == hash("pin") then
 		go.delete(message.other_id)
-		score = score + 1
+		score = score + 35
 		print(score)
 		label.set_text("score#label", tostring(score))
 		msg.post("#bounce", "play_sound")
