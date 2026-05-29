@@ -5,5 +5,5 @@ end
 
 function update(self, dt)
 	self.t = self.t + dt
-	sprite.set_constant("#model", "time", vmath.vector4(self.t, 0, 0, 0))
+	go.set("#model", "time", vmath.vector4(self.t, 0, 0, 0))
 end

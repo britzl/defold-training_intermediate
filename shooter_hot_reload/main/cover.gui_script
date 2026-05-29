@@ -27,7 +27,7 @@ end
 
 function on_reload(self)
 	local node = gui.get_node("start")
-	gui.cancel_animation(node, "color.w")
+	gui.cancel_animations(node, "color.w")
 	gui.set_color(node, vmath.vector4(1, 1, 1, 1))
 	gui.animate(node, "color.w", 0.1, gui.EASING_INOUTEXPO, 0.4, 0.0, nil, gui.PLAYBACK_LOOP_PINGPONG)
 end
